@@ -68,19 +68,19 @@ root <- subset_samples(phy_filtered, tissue=="Root")
 leaf <- subset_samples(phy_filtered, tissue=="Leaf")
 
 soil_dist <- ordinate(soil, "PCoA", "wunifrac")
-sbc <- plot_ordination(soil, soil_dist, type="samples", color = "location") + geom_point(size=5) +
+sbc <- plot_ordination(soil, soil_dist, type="samples", color = "Location") + geom_point(size=5) +
   ggtitle("Soil x Weigted-Unifrac") + theme(legend.position = "none") + scale_color_manual(values = manualcolors)
 
 rw_dist <- ordinate(rootwash, "PCoA", "wunifrac")
-rwbc <- plot_ordination(rootwash, rw_dist, type="samples", color = "location") + geom_point(size=5) +
+rwbc <- plot_ordination(rootwash, rw_dist, type="samples", color = "Location") + geom_point(size=5) +
   ggtitle("RootWash x Weigted-Unifrac") + theme(legend.position = "none") + scale_color_manual(values = manualcolors)
 
 root_dist <- ordinate(root, "PCoA", "wunifrac")
-rootbc <- plot_ordination(root, root_dist, type="samples", color = "location") + geom_point(size=5) +
+rootbc <- plot_ordination(root, root_dist, type="samples", color = "Location") + geom_point(size=5) +
   ggtitle("Roots x Weigted-Unifrac") + theme(legend.position = "none") + scale_color_manual(values = manualcolors)
 
 leaf_dist <- ordinate(leaf, "PCoA", "wunifrac")
-leafbc <- plot_ordination(leaf, leaf_dist, type="samples", color = "location") + geom_point(size=5) +
+leafbc <- plot_ordination(leaf, leaf_dist, type="samples", color = "Location") + geom_point(size=5) +
   ggtitle("Leaf x Weigted-Unifrac") + theme(legend.position = "none") + scale_color_manual(values = manualcolors)
 
 
@@ -89,8 +89,8 @@ beta_diversity <- ggarrange(sbc, rwbc, rootbc, leafbc, ncol = 2, nrow = 2, label
 beta_plot <- ggarrange(tissue_bc,beta_diversity,nrow = 2)
 beta_plot
 
-ggsave("Bact_wunifrac_relabund_BetaDiversity.png", plot = beta_plot, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
-       width = 10, height = 10, units = c("in"), device = "png")
+ggsave("Bact_wunifrac_relabund_BetaDiversity_POSTER.png", plot = beta_plot, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
+       width = 30, height = 10, units = c("in"), device = "png")
 
 # Statistics 
 

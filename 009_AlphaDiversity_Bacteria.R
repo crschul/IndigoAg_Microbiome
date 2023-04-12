@@ -43,34 +43,34 @@ leaf <- subset_samples(phy_filtered, tissue=="Leaf")
 
 
 alpha_plot1 <- plot_richness(phy_filtered, x="tissue", measures=c("Observed", "Shannon", "Simpson"), 
-                             color = "location",
+                             color = "Location",
                             title = "Alpha Diversity: Location by Tissues") + geom_point(alpha = .05)
 alpha_plot1
 
 
-soil_alpha <- plot_richness(soil, x = "location",measures=c("Observed", "Shannon", "Simpson"), 
-                            color = "location",
+soil_alpha <- plot_richness(soil, x = "Location",measures=c("Observed", "Shannon", "Simpson"), 
+                            color = "Location",
                             title = "Alpha Diversity: Bacteria - Soil") + theme(legend.position = "none") +
   geom_point(position = position_dodge(width = .5))
 soil_alpha$layers <- soil_alpha$layers[-1]
 soil_alpha
 
-rootwash_alpha <- plot_richness(rootwash, x = "location",measures=c("Observed", "Shannon", "Simpson"), 
-                            color = "location",
+rootwash_alpha <- plot_richness(rootwash, x = "Location",measures=c("Observed", "Shannon", "Simpson"), 
+                            color = "Location",
                             title = "Alpha Diversity: Bacteria - Root Wash") + theme(legend.position = "none") +
   geom_point(position = position_dodge(width = .5))
 rootwash_alpha$layers <- rootwash_alpha$layers[-1]
 rootwash_alpha
 
-root_alpha <- plot_richness(root, x = "location",measures=c("Observed", "Shannon", "Simpson"), 
-                                color = "location",
+root_alpha <- plot_richness(root, x = "Location",measures=c("Observed", "Shannon", "Simpson"), 
+                                color = "Location",
                                 title = "Alpha Diversity: Bacteria - Roots") + theme(legend.position = "none") +
   geom_point(position = position_dodge(width = .5))
 root_alpha$layers <- root_alpha$layers[-1]
 root_alpha
 
-leaf_alpha <- plot_richness(leaf, x = "location",measures=c("Observed", "Shannon", "Simpson"), 
-                            color = "location",
+leaf_alpha <- plot_richness(leaf, x = "Location",measures=c("Observed", "Shannon", "Simpson"), 
+                            color = "Location",
                             title = "Alpha Diversity: Bacteria - Leaf") + theme(legend.position = "none") +
   geom_point(position = position_dodge(width = .5))
 leaf_alpha$layers <- leaf_alpha$layers[-1]

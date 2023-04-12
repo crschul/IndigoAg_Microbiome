@@ -121,8 +121,8 @@ relbar
 
 flow_and_relabund <- ggarrange(gs,relbar, labels = c("A","B"), widths = c(1,.5))
 
-ggsave("BacteriaSankeyRelAbun.png", plot = flow_and_relabund, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
-       width = 10, height = 10, units = c("in"), device = "png")
+ggsave("BacteriaSankeyRelAbun_POSTER.png", plot = flow_and_relabund, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
+       width = 30, height = 10, units = c("in"), device = "png")
 
 
 
