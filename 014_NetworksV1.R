@@ -39,8 +39,61 @@ combined_phylum <- conglomerate_taxa(phy_combined, "Phylum")
 
 # Combine them all
 net_fig <- co_occurrence_network(combined_phylum, treatment = c("Location","tissue"),
-                      classification = 'Phylum', buffer = 5) + 
+                      classification = 'Phylum', buffer = 20) + 
   ggtitle("Co_occurance Network of Bacteria and Fungal Phylums across the US")
+
+net_fig_str <- ggplot_build(net_fig)
+  
+
+# Try piecing together our own
+
+# Tomorrow - Relative abundance of phyla drop anything smaller than .2
+
+co_table <- co_occurrence(combined_phylum, treatment = c('Location', 'tissue'), method = 'spearman',
+                          cores = 4, rho = 0.85)
+
+network_layout_obj <- network_layout_ps(combined_phylum,treatment = c("Location","tissue"),
+                                        co_occurrence_table = co_table,
+                                        algorithm = 'circle')
+# filter rare taxa through col in network layout obj
+
+layout_abundant <- filter(network_layout_obj, `Mean Relative Abundance` != "(0,0.04]")
+
+all_abundant <- co_occurrence_network(combined_phylum,treatment = c("Location","tissue"),
+                      co_occurrence_table = co_table,
+                      layout = layout_abundant,
+                      negative_positive_colors = c('gray22','tomato3'),
+                      classification = 'Phylum') + 
+  ggtitle("All Tissue Abundant Taxa")
+
+all_abundant <- all_abundant + geom_label(aes(x = all_abundant$data$x,y=all_abundant$data$y,
+                                             label = all_abundant$data$Phylum),
+                                         size = 6,nudge_y = .05,
+                                         fontface="bold",
+                                         vjust="inward",hjust="inward")
+all_abundant
+
+
+layout_rare <- filter(network_layout_obj, `Mean Relative Abundance` == "(0,0.04]")
+
+co_occurrence_network(combined_phylum,treatment = c("Location","tissue"),
+                      co_occurrence_table = co_table,
+                      layout = layout_rare,
+                      classification = 'Phylum')
+
+ggsave("BacteriaSankeyRelAbun_POSTER.png", plot = flow_and_relabund, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
+       width = 30, height = 10, units = c("in"), device = "png")
+
+library(igraph)
+g <- graph(network_layout_obj)
+
+l <- layout_in_circle(network_layout_obj)
+plot(network_layout_obj,layout = l)
+
+
+
+write.csv(igraph::as_edgelist(network_layout_obj, names = T),file = "igraph_net.csv",sep = ",")
+
 
 # The table we want: now what
 co_df <- co_occurrence(combined_phylum, treatment = c('Location', 'tissue'), method = 'spearman',
@@ -81,8 +134,13 @@ precip_corr_heat <- variable_correlation_heatmap(phy_combined, variables = "prec
                                                  colors = c("#2C7BB6", "white", "#D7191C")) + 
   ggtitle(" Correlation between Precipitation and Phylum")
 
-###### Final step, get a measure of each network, and do a MLM with a covariate table of env data
+### all this with picrust 
+
+
+###### Final steps, get a measure of each network, and do a MLM with a covariate table of env data
 ### maybe network properties, connectivity is what I really want. 
+
+# Dan - correlated pulled soil data with existing soil data see if I can trust and extrapolate
 
 # NetCoMi would work really well but it sucks at running? Try to fix. 
 
@@ -91,5 +149,97 @@ precip_corr_heat <- variable_correlation_heatmap(phy_combined, variables = "prec
 # per sample %>% netConstruct %>% netAnalyze %>% net analyze %>% grab data
 
 # Try her example
+library(NetCoMi)
+data("soilrep")
 
+soil_warm_yes <- phyloseq::subset_samples(soilrep, warmed == "yes")
+soil_warm_no  <- phyloseq::subset_samples(soilrep, warmed == "no")
+
+net_seas_p <- netConstruct(soil_warm_yes, soil_warm_no,
+                           filtTax = "highestVar",
+                           filtTaxPar = list(highestVar = 500),
+                           zeroMethod = "pseudo",
+                           normMethod = "clr",
+                           measure = "pearson",
+                           verbose = 0)
+
+
+netprops1 <- netAnalyze(net_seas_p, clustMethod = "cluster_fast_greedy")
+
+summary(netprops1)
+
+nclust <- as.numeric(max(names(table(netprops1$clustering$clust1))))
+col <- c(topo.colors(nclust), rainbow(6))
+
+
+
+# my data
+fung_phy <- phyloseq::subset_samples(phy_combined, Microbe == "fung")
+bac_phy  <- phyloseq::subset_samples(phy_combined, Microbe == "bacteria")
+
+phylum_combined <- tax_glom(phy_combined,"Phylum")
+
+combined_net <- netConstruct(phylum_combined,
+                             measure = "pearson",
+                             zeroMethod = "pseudo",
+                             normMethod = "clr",
+                             verbose = 2,
+                             taxRank = "Phylum")
+
+
+
+net_anal <- netAnalyze(combined_net, clustMethod = "cluster_fast_greedy")
+
+summary(net_anal)
+
+
+plot(net_anal,
+     layout = "circle",
+     nodeColor = "gray")
+
+
+plot(nat_anal,
+     sameLayout = TRUE, 
+     layoutGroup = "union", 
+     colorVec = col,
+     borderCol = "gray40", 
+     nodeSize = "degree", 
+     cexNodes = 0.9, 
+     nodeSizeSpread = 3, 
+     edgeTranspLow = 80, 
+     edgeTranspHigh = 50, 
+     showTitle = TRUE, 
+     cexTitle = 2.8,
+     mar = c(1,1,3,1), 
+     repulsion = 0.9, 
+     labels = FALSE, 
+     rmSingles = "inboth",
+     nodeFilter = "clustMin", 
+     nodeFilterPar = 10, 
+     nodeTransp = 50, 
+     hubTransp = 30)
+
+
+
+# plot(netprops1, 
+#      sameLayout = TRUE, 
+#      layoutGroup = "union", 
+#      colorVec = col,
+#      borderCol = "gray40", 
+#      nodeSize = "degree", 
+#      cexNodes = 0.9, 
+#      nodeSizeSpread = 3, 
+#      edgeTranspLow = 80, 
+#      edgeTranspHigh = 50,
+#      groupNames = c("Warming", "Non-warming"), 
+#      showTitle = TRUE, 
+#      cexTitle = 2.8,
+#      mar = c(1,1,3,1), 
+#      repulsion = 0.9, 
+#      labels = FALSE, 
+#      rmSingles = "inboth",
+#      nodeFilter = "clustMin", 
+#      nodeFilterPar = 10, 
+#      nodeTransp = 50, 
+#      hubTransp = 30)
 
