@@ -120,9 +120,13 @@ gf <- ggplot(corr_df_f, aes(x = Y, y = X, fill = rho)) +
   scale_fill_gradient2(low = "red", mid = "white",high = "blue") + theme_bw() +
   ggtitle(("Effect of Environment on Fungal Phylum"))+ 
   theme(panel.grid.major.x = element_blank()) + 
+  theme(panel.grid.major.y = element_blank()) +
   xlab(element_blank()) + ylab(element_blank()) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face = "bold")) +
-  theme(axis.text.y = element_text(face = "bold")) + scale_y_discrete(limits=rev)
+  theme(axis.text.y = element_text(face = "bold")) + 
+  theme(plot.title = element_text(size = 11, face = "bold")) + scale_y_discrete(limits=rev) +
+  theme(strip.text.x = element_text(size = 12,face = "bold")) +
+  geom_hline(yintercept=seq(1.5, length(unique(corr_df_f$X)),1), colour='grey')
 
 gf
 
@@ -153,14 +157,19 @@ bact_adj$p <- p.adjust(bact_adj$p, method = "BH")
 bact_adj <- filter(bact_adj, p < .05)
 
 corr_df_b <- bact_adj
+
 gb <- ggplot(corr_df_b, aes(x = Y, y = X, fill = rho)) + 
   geom_tile(color="black") + facet_wrap(~Treatment, nrow = 4) +
   scale_fill_gradient2(low = "red", mid = "white",high = "blue") + theme_bw()  +
   ggtitle(("Effect of Environment on Bacteria Phylum")) + 
-  theme(panel.grid.major.x = element_blank()) + 
+  theme(panel.grid.major.x = element_blank()) +
+  theme(panel.grid.major.y = element_blank()) +
   xlab(element_blank()) + ylab(element_blank()) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face = "bold")) +
-  theme(axis.text.y = element_text(face = "bold")) + scale_y_discrete(limits=rev)
+  theme(axis.text.y = element_text(face = "bold")) +
+  theme(plot.title = element_text(size = 11, face = "bold")) + scale_y_discrete(limits=rev) + 
+  theme(strip.text.x = element_text(size = 12,face = "bold")) +
+  geom_hline(yintercept=seq(1.5, length(unique(corr_df_b$X)),1), colour='grey')
 
 gb
 
@@ -169,5 +178,5 @@ the_heatmap <- ggarrange(gb,gf, ncol = 2, common.legend = TRUE, legend = "right"
 
 
 ggsave("Environmental_Corr_Heatmap.png", plot = the_heatmap, path = "Results_Figs_Tables/Quick_Figures", dpi = 700, 
-       width = 15, height = 10, units = c("in"), device = "png")
+       width = 10, height = 10, units = c("in"), device = "png")
 

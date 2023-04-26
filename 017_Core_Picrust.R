@@ -1,4 +1,6 @@
 # Script for looking at core picrust
+
+# We need a combined (bacteria and fungal) phyloseq obj at the asv level to export to picrust 
 # Combined Data
 
 set.seed(18)
@@ -28,38 +30,181 @@ load("phy_combined.rdata")
 metadata <- read.csv("Metadata_Indigo_Clean.tsv", header = TRUE, sep = "\t")
 
 
-### We need to subsest our data to get core taxa for fungus and bacteria in all 4 tissues
-
-Bacteria_phy <- subset_samples(phy_combined, Microbe == "bacteria")
-Fungi_phy <- subset_samples(phy_combined, Microbe == "fung")
-
-Bacteria_phy <- tax_glom(Bacteria_phy, taxrank="Genus")
-
-bact_soil <- subset_samples(Bacteria_phy, tissue == "Soil")
-bact_rootwash <- subset_samples(Bacteria_phy, tissue == "Root wash")
-bact_root <- subset_samples(Bacteria_phy, tissue == "Root")
-bact_leaf <- subset_samples(Bacteria_phy, tissue == "Leaf")
-
-fung_soil <- subset_samples(Fungi_phy, tissue == "Soil")
-fung_rootwash <- subset_samples(Fungi_phy, tissue == "Root wash")
-fung_root <- subset_samples(Fungi_phy, tissue == "Root")
-fung_leaf <- subset_samples(Fungi_phy, tissue == "Leaf")
+############### make a phyloseq object with bacteria and fungal ASVs!
 
 
-### get core taxa for these tissues - use 50% so we actually get more than one taxa lol
-fb = 0.5
-ff = 0.5
+# fungus
+SVs <- read_qza("QZA_Files/Fungal_dada_table.qza")
 
-bact_soil_core <- taxa_filter(bact_soil, frequency = fb)
-bact_rootwash_core <- taxa_filter(bact_rootwash, frequency = fb)
-bact_root_core <- taxa_filter(bact_root, frequency = fb)
-bact_leaf_core <- taxa_filter(bact_leaf, frequency = fb)
+taxonomy <- read_qza("QZA_Files/Fungal_taxonomy.qza")
+taxtable <-taxonomy$data %>% as.data.frame() 
+taxtable <- taxtable %>% separate(Taxon, into = c("Kingdom","Phylum","Class","Order","Family","Genus","Species"), sep = ";") #convert the table into a tabular split version
 
-fungi_soil_core <- taxa_filter(fung_soil, frequency = ff)
-fungi_rootwash_core <- taxa_filter(fung_rootwash, frequency = ff)
-fungi_root_core <- taxa_filter(fung_root, frequency = ff)
-fungi_leaf_core <- taxa_filter(fung_leaf, frequency = ff)
+phy <- qza_to_phyloseq(features="QZA_Files/Fungal_dada_table.qza", taxonomy="QZA_Files/Fungal_taxonomy.qza", metadata="Metadata_Indigo_Clean.tsv")
+phy
 
+
+
+##### FILTERING
+
+##    Taxonomic Filtering: Supervised
+# create taxonomy table: number of features for each phyla
+table(tax_table(phy)[, "Phylum"], exclude = NULL)
+
+# Remove phyla for which only one feature was observed. And ambiguous calls
+
+
+#Filter out Chlorophlasts and Mitochondria
+phy
+psm = subset_taxa(phy,Family!="Mitochondria")
+psm
+psu = subset_taxa(psm, Phylum != "unidentified")
+psu
+psc = subset_taxa(psu,Order!="Chloroplast")
+psc
+
+# remove problem sample
+psc = subset_samples(psc, sample_names(psc) !="sample5324")
+
+phy_f_genus <- tax_glom(psc, taxrank = "Genus", NArm = FALSE)
+
+
+
+#### Compute filtering options
+
+# Filter any ASV that is in less than 2 samples and has less than 2 reads
+
+filter_compare_reads <- function(phy_obj){
+  
+  prevdf = apply(X = otu_table(phy_obj),
+                 MARGIN = ifelse(taxa_are_rows(phy_obj), yes = 1, no = 0),
+                 FUN = function(x){sum(x > 0)})
+  
+  # Add taxonomy and total read counts to this data.frame
+  prevdf = data.frame(Prevalence = prevdf,
+                      TotalAbundance = taxa_sums(phy_obj),
+                      tax_table(phy_obj))
+  
+  prevdf1 = subset(prevdf, Phylum %in% get_taxa_unique(phy_obj, "Phylum"))
+  
+  # Total taxa sums
+  TotalReads <- sum(prevdf1$TotalAbundance)
+  readThreshold <- 2
+  
+  prevalenceThreshold = 2 #We have such a wide variety of locations and tissues that we don't want to lose alot 0.01 * nsamples(psc)
+  prevalenceThreshold
+  
+  # taxa must be in at least two samples and make up .0001% of total reads
+  keepTaxa = rownames(prevdf1)[(prevdf1$Prevalence >= prevalenceThreshold & prevdf1$TotalAbundance >= readThreshold)]
+  phy_filt = prune_taxa(keepTaxa, phy_obj)
+  print(sum(sample_sums(phy_filt)))
+  return(phy_filt)
+  
+}
+
+# Filter any taxa that is in less than 2 samples and has less than 14 reads
+phy_asv <- filter_compare_reads(psc) # 10,044,327
+
+phy_filtered_fungus_asv <- prune_samples(sample_sums(phy_asv) >= 500, phy_f_genus)
+
+
+
+
+### bacteria
+
+SVs <- read_qza("QZA_Files/table-sequence_runs_16s_2017.qza")
+
+taxonomy <- read_qza("QZA_Files/taxonomy.qza")
+btreey <- read_qza("QZA_Files/tree.qza")
+taxtable <-taxonomy$data %>% as.data.frame() 
+taxtable <- taxtable %>% separate(Taxon, into = c("Kingdom","Phylum","Class","Order","Family","Genus","Species"), sep = ";") #convert the table into a tabular split version
+
+phy <- qza_to_phyloseq(features="QZA_Files/table-sequence_runs_16s_2017.qza", taxonomy="QZA_Files/taxonomy.qza", tree="QZA_Files/tree.qza", metadata="Metadata_Indigo_Clean.tsv")
+phy
+
+
+
+##### FILTERING
+
+##    Taxonomic Filtering: Supervised
+# create taxonomy table: number of features for each phyla
+table(tax_table(phy)[, "Phylum"], exclude = NULL)
+
+# Remove phyla for which only one feature was observed. And ambiguous calls
+
+
+#Filter out Chlorophlasts and Mitochondria
+phy
+psm = subset_taxa(phy,Family!="Mitochondria")
+psm
+psu = subset_taxa(psm, Phylum != "unidentified")
+psu
+psc = subset_taxa(psu,Order!="Chloroplast")
+psc
+
+# remove problem sample
+#psc = subset_samples(psc, sample_names(psc) !="sample5324")
+
+#phy_f_genus <- tax_glom(psc, taxrank = "Genus", NArm = FALSE)
+
+
+
+#### Compute filtering options
+
+# Filter any Genus that is in less than 1 samples and has less than 2 reads
+
+filter_compare_reads <- function(phy_obj){
+  
+  prevdf = apply(X = otu_table(phy_obj),
+                 MARGIN = ifelse(taxa_are_rows(phy_obj), yes = 1, no = 0),
+                 FUN = function(x){sum(x > 0)})
+  
+  # Add taxonomy and total read counts to this data.frame
+  prevdf = data.frame(Prevalence = prevdf,
+                      TotalAbundance = taxa_sums(phy_obj),
+                      tax_table(phy_obj))
+  
+  prevdf1 = subset(prevdf, Phylum %in% get_taxa_unique(phy_obj, "Phylum"))
+  
+  # Total taxa sums
+  TotalReads <- sum(prevdf1$TotalAbundance)
+  readThreshold <- 2
+  
+  prevalenceThreshold = 2 #We have such a wide variety of locations and tissues that we don't want to lose alot 0.01 * nsamples(psc)
+  prevalenceThreshold
+  
+  # taxa must be in at least two samples and make up .0001% of total reads
+  keepTaxa = rownames(prevdf1)[(prevdf1$Prevalence >= prevalenceThreshold & prevdf1$TotalAbundance >= readThreshold)]
+  phy_filt = prune_taxa(keepTaxa, phy_obj)
+  print(sum(sample_sums(phy_filt)))
+  return(phy_filt)
+  
+}
+
+
+
+# Filter any taxa that is in less than 2 samples and has less than 2 reads
+phy_asv <- filter_compare_reads(psc) # 10,044,327
+
+phy_filtered_bacteria <- prune_samples(sample_sums(phy_asv) >= 500, phy_asv)
+
+
+
+################# Combine them!
+
+# have to remove the sloth fur sample
+phy_filtered_b = subset_samples(phy_filtered_bacteria, tissue != "Sloth fur")
+
+phy_filtered_g = subset_samples(phy_filtered_fungus_asv, tissue != "Sloth fur")
+
+combined_otu <- merge_phyloseq(otu_table(phy_filtered_g), otu_table(phy_filtered_b))
+combined_taxa <- merge_phyloseq(tax_table(phy_filtered_g), tax_table(phy_filtered_b))
+combined_meta <- merge_phyloseq(sample_data(phy_filtered_g), sample_data(phy_filtered_b))
+
+phy_combined_asv <- phyloseq(combined_otu,combined_taxa,combined_meta)
+phy_combined_asv
+
+save(phy_combined_asv, file = "phy_combined_asv.rdata")
 
 setwd("//wsl.localhost/Ubuntu-18.04/home/crschul/IndigoAgMicrobiome/PICRUST_folder") 
 
@@ -129,15 +274,14 @@ phyloseq2qiime2<-function(physeq){
 }
 
 # Export to qiime qza and also a biome file
-phyloseq2qiime2(bact_soil_core)
-phyloseq2qiime2(bact_rootwash_core)
-phyloseq2qiime2(bact_root_core)
-phyloseq2qiime2(bact_leaf_core)
+phyloseq2qiime2(phy_combined_asv)
 
-phyloseq2qiime2(fungi_soil_core)
-phyloseq2qiime2(fungi_rootwash_core)
-phyloseq2qiime2(fungi_root_core)
-phyloseq2qiime2(fungi_leaf_core)
+# picrust wont run a combined analysis so export them seperately 
+
+phyloseq2qiime2(phy_filtered_b)
+phyloseq2qiime2(phy_filtered_g)
+
+
 
 
 # biome file = phyCmbFiltClean_features-table.biom
