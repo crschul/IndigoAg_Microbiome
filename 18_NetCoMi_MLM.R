@@ -418,20 +418,20 @@ ggsave("NaturalConnectivity_Tissues_Phylum.png", plot = plot_conn_tissue,
 
 
 write.table(connect_asv,file = "ASV_connectivity.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 write.table(connect_family,file = "Family_connectivity.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 write.table(connect_phy,file = "Phylum_connectivity.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 
 write.table(Signif_Soil,file = "Soil_Cov_Signif.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 write.table(Signif_RootWash,file = "RootWash_Cov_Signif.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 write.table(Signif_Root,file = "Root_Cov_Signif.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 write.table(Signif_Leaf,file = "Leaf_Cov_Signif.csv", 
-            sep = "/t", col.names = TRUE)
+            sep = "\t", col.names = TRUE)
 
 
 
